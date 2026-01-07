@@ -1,7 +1,8 @@
 import { Menu, MapPin, Calendar, Camera, FileText, ChevronRight, Dna, Heart, Users, Activity, ClipboardList } from 'lucide-react';
 import { ImageWithFallback } from './components/figma/ImageWithFallback';
 import cocoImage from '../assets/9675871eb79a6ff3f307eaaef735ac57b5d78b1b.png';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createWidget } from '@typeform/embed';
 
 export default function App() {
   const [showAllergySurvey, setShowAllergySurvey] = useState(false);
@@ -286,6 +287,44 @@ function AirtableSurveys({ userId }: { userId: string }) {
   if (loading) return <div className="text-sm text-gray-600">Loading surveys...</div>;
 
   if (selected) {
+    const widgetContainerRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+      if (!selected) return;
+      const RESP_SERVER = (import.meta.env.VITE_RESPONSE_SERVER_URL as string) || 'http://localhost:4000';
+
+      const el = widgetContainerRef.current;
+      if (!el) return;
+
+      const widget = createWidget(el, {
+        url: selected.typeformURL,
+        hideHeaders: true,
+        hideFooter: true,
+        onSubmit: async () => {
+          try {
+            await fetch(`${RESP_SERVER}/api/save-response`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: (userId as string) || 'userdefault',
+                airtableId: selected.id,
+                typeformURL: selected.typeformURL,
+              }),
+            });
+          } catch (err) {
+            // ignore errors for now
+          }
+        },
+      });
+
+      return () => {
+        try {
+          // Typeform widget doesn't expose a standard dispose; clear container
+          if (el) el.innerHTML = '';
+        } catch {}
+      };
+    }, [selected]);
+
     return (
       <div>
         <button className="text-blue-600 text-sm mb-4 flex items-center gap-1" onClick={() => setSelected(null)}>
@@ -296,11 +335,7 @@ function AirtableSurveys({ userId }: { userId: string }) {
         <div className="w-full">
           <div className="mb-2 text-sm font-medium">{selected.title}</div>
           <div className="w-full h-96 border rounded overflow-hidden">
-            <iframe
-              src={selected.typeformURL}
-              title={selected.title}
-              className="w-full h-full"
-            />
+            <div ref={widgetContainerRef} className="w-full h-full" />
           </div>
         </div>
       </div>
