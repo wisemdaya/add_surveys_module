@@ -296,13 +296,19 @@ function AirtableSurveys({ userId }: { userId: string }) {
       const el = widgetContainerRef.current;
       if (!el) return;
 
-      const widget = createWidget(
-        el,
-        selected.typeformURL,
-        {
-          hideHeaders: true,
-          hideFooter: true,
-          onSubmit: async () => {
+      try {
+        if (!selected.typeformURL) {
+          console.error('Typeform URL missing for selected survey', selected);
+          return;
+        }
+
+        const widget = createWidget(
+          el,
+          selected.typeformURL,
+          {
+            hideHeaders: true,
+            hideFooter: true,
+            onSubmit: async () => {
             const payload = {
               userId: (userId as string) || 'userdefault',
               airtableId: selected.id,
@@ -319,9 +325,12 @@ function AirtableSurveys({ userId }: { userId: string }) {
             } catch (err) {
               console.error('Save response error:', err);
             }
-          },
-        }
-      );
+            },
+          }
+        );
+      } catch (err) {
+        console.error('Failed to mount Typeform widget', err);
+      }
 
       return () => {
         try {
