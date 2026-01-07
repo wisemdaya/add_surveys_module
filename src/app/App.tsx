@@ -296,11 +296,13 @@ function AirtableSurveys({ userId }: { userId: string }) {
       const el = widgetContainerRef.current;
       if (!el) return;
 
-      const widget = createWidget(el, {
-        url: selected.typeformURL,
-        hideHeaders: true,
-        hideFooter: true,
-        onSubmit: async () => {
+      const widget = createWidget(
+        el,
+        selected.typeformURL,
+        {
+          hideHeaders: true,
+          hideFooter: true,
+          onSubmit: async () => {
           try {
             await fetch(`${RESP_SERVER}/api/save-response`, {
               method: 'POST',
@@ -314,8 +316,9 @@ function AirtableSurveys({ userId }: { userId: string }) {
           } catch (err) {
             // ignore errors for now
           }
-        },
-      });
+          },
+        }
+      );
 
       return () => {
         try {
