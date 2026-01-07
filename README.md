@@ -32,4 +32,31 @@
   - The Airtable table should include fields: `Title`, `TypeformURL` (the embed URL), `Status` (use value `active` for available surveys), and `Date Created` (or rely on record `createdTime`).
 
   After adding the `.env.local` file, restart the dev server.
+
+## Saving Typeform Responses
+
+This repository includes a small local server that accepts POST requests and appends responses to `data/responses.jsonl`.
+
+1. Install server dependencies and start the server (runs on port 4000 by default):
+
+```bash
+npm install
+npm run server
+```
+
+2. Configure your Typeform webhook (or use the embed SDK) to POST completed responses to:
+
+```
+http://localhost:4000/api/save-response
+```
+
+3. The server will append each received payload as one JSON-per-line to `data/responses.jsonl`.
+
+4. To view saved responses locally, visit:
+
+```
+http://localhost:4000/api/responses
+```
+
+Security note: Do not expose the server publicly without adding authentication. For production, use a secure server or store responses in a database.
   
