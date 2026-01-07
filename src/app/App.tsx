@@ -12,6 +12,15 @@ export default function App() {
     skinIrritation: ''
   });
 
+  const [userId, setUserId] = useState('userdefault');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('user');
+    if (q && q.trim().length > 0) setUserId(q.trim());
+  }, []);
+
   const handleSurveySubmit = () => {
     // Handle survey submission
     setSurveySubmitted(true);
