@@ -126,7 +126,7 @@ export default function App() {
           <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
             <h2 className="text-lg text-left mb-3">Surveys</h2>
 
-            <AirtableSurveys />
+            <AirtableSurveys userId={userId} />
           </div>
 
         </div>
@@ -202,7 +202,7 @@ type Survey = {
   createdTime?: string;
 };
 
-function AirtableSurveys() {
+function AirtableSurveys({ userId }: { userId: string }) {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -212,6 +212,8 @@ function AirtableSurveys() {
     const BASE = (import.meta.env.VITE_AIRTABLE_BASE as string) || '';
     const TABLE = (import.meta.env.VITE_AIRTABLE_TABLE as string) || '';
     const TOKEN = (import.meta.env.VITE_AIRTABLE_TOKEN as string) || '';
+
+    const RESP_SERVER = (import.meta.env.VITE_RESPONSE_SERVER_URL as string) || 'http://localhost:4000';
 
     if (!BASE || !TABLE || !TOKEN) {
       setError('Airtable config missing. Set VITE_AIRTABLE_BASE, VITE_AIRTABLE_TABLE, VITE_AIRTABLE_TOKEN');
@@ -228,7 +230,7 @@ function AirtableSurveys() {
       },
     })
       .then((res) => res.json())
-      .then((data) => {
+      .then(async (data) => {
         if (data.error) {
           setError(data.error.message || 'Airtable request failed');
           setLoading(false);
@@ -236,14 +238,38 @@ function AirtableSurveys() {
         }
 
         const records = data.records || [];
-        const mapped: Survey[] = records
-          .map((r: any) => ({
-            id: r.id,
-            title: r.fields?.Title || 'Untitled',
-            typeformURL: r.fields?.TypeformURL || r.fields?.Typeform || '',
-            status: r.fields?.Status,
-            createdTime: r.createdTime || r.fields?.['Date Created'],
-          }))
+
+        // try to fetch saved responses for this demo (optional)
+        let completedSet = new Set<string>();
+        try {
+          const resp = await fetch(`${RESP_SERVER}/api/responses`);
+          if (resp.ok) {
+            const entries = await resp.json();
+            for (const e of entries) {
+              const p = e.payload || {};
+              // only consider entries for this user
+              if (p.userId && p.userId === userId) {
+                const aid = p.airtableId || p.surveyId || p.recordId;
+                if (aid) completedSet.add(aid);
+              }
+            }
+          }
+        } catch (err) {
+          // ignore errors from response server — still show surveys
+        }
+
+        const mappedAll: Survey[] = records.map((r: any) => ({
+          id: r.id,
+          title: r.fields?.Title || 'Untitled',
+          typeformURL: r.fields?.TypeformURL || r.fields?.Typeform || '',
+          status: r.fields?.Status,
+          createdTime: r.createdTime || r.fields?.['Date Created'],
+        }));
+
+        // filter out surveys the current user already completed (by airtable id)
+        const filtered = mappedAll.filter((s) => !completedSet.has(s.id));
+
+        const mapped: Survey[] = filtered
           .sort((a, b) => (b.createdTime || '').localeCompare(a.createdTime || ''))
           .slice(0, 3);
 
