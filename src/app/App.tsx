@@ -303,19 +303,22 @@ function AirtableSurveys({ userId }: { userId: string }) {
           hideHeaders: true,
           hideFooter: true,
           onSubmit: async () => {
-          try {
-            await fetch(`${RESP_SERVER}/api/save-response`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userId: (userId as string) || 'userdefault',
-                airtableId: selected.id,
-                typeformURL: selected.typeformURL,
-              }),
-            });
-          } catch (err) {
-            // ignore errors for now
-          }
+            const payload = {
+              userId: (userId as string) || 'userdefault',
+              airtableId: selected.id,
+              typeformURL: selected.typeformURL,
+            };
+            console.log('Typeform onSubmit payload:', payload);
+            try {
+              const resp = await fetch(`${RESP_SERVER}/api/save-response`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
+              console.log('Save response status:', resp.status, 'ok:', resp.ok);
+            } catch (err) {
+              console.error('Save response error:', err);
+            }
           },
         }
       );
